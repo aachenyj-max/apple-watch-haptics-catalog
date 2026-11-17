@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apple Watch 触感模拟</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #151716;
+    --surface: #1d201e;
+    --text: #f3f5ef;
+    --muted: #b1b9b2;
+    --border: #424b44;
+    --accent: #d3f992;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.55; }
+  main { max-width: 1040px; margin-inline: auto; padding: 52px 28px 36px; }
+  h1 { font-size: clamp(1.85rem, 5vw, 3.15rem); line-height: 1.12; margin: 0 0 14px; letter-spacing: -.045em; }
+  p { margin: 0; }
+  header p, footer { color: var(--muted); }
+  .controls {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 4px 20px;
+    margin: 30px 0 16px; padding-block: 4px; border-block: 1px solid var(--border);
+  }
+  .controls label { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+  .controls label[hidden] { display: none; }
+  input { accent-color: var(--accent); }
+  input[type=range] { width: 112px; min-height: 44px; }
+  .volume output { min-width: 3ch; font-variant-numeric: tabular-nums; }
+  button {
+    border: 1px solid var(--border); border-radius: 8px; min-height: 44px;
+    padding: 8px 14px; color: var(--text); background: var(--surface); font: inherit; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button:active { opacity: .82; }
+  button:disabled { cursor: default; opacity: .48; border-color: var(--border); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .status { margin-inline-start: auto; color: var(--muted); font-size: .875rem; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .sample { --tone: var(--accent); border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 20px; }
+  .sample[data-id=cue] { --tone: #a8e1ee; }
+  .sample[data-id=reminder] { --tone: #ffd18d; }
+  .sample[data-id=warning] { --tone: #ffab9f; }
+  .sample-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  h2 { margin: 0; font-size: 1.3rem; }
+  .sample a { color: var(--muted); font-size: .8rem; overflow-wrap: anywhere; text-underline-offset: 3px; }
+  .sample button { flex: none; }
+  .sample.playing button { color: var(--bg); background: var(--tone); border-color: var(--tone); }
+  .sample .sample-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .sample .sample-actions button { background: var(--surface); color: var(--text); border-color: var(--border); }
+  .sample-actions button:hover { border-color: var(--tone); }
+  .sample .sample-actions button.primary, .sample .sample-actions button[aria-pressed=true] {
+    background: var(--tone); color: var(--bg); border-color: var(--tone);
+  }
+  .official-demo { display: block; width: 100%; margin-top: 16px; border-radius: 9px; background: #0e100f; }
+  .official-demo[hidden] { display: none; }
+  .wave {
+    position: relative; min-height: 66px; margin-top: 16px; border-radius: 9px;
+    background: repeating-linear-gradient(90deg, #303732 0 1px, transparent 1px calc(100% / 7)), #171a18;
+    border: 1px solid var(--border); overflow: hidden;
+  }
+  .wave::before { content: ""; position: absolute; top: 50%; width: 100%; border-top: 1px solid var(--border); }
+  .pulse {
+    position: absolute; top: 50%; left: var(--start); width: var(--length); height: var(--height);
+    transform: translateY(-50%); border-radius: 5px; background: var(--tone); opacity: .47;
+  }
+  .pulse.active { opacity: 1; animation: tremor 38ms ease-in-out infinite alternate; }
+  @keyframes tremor {
+    from { transform: translate(-1.5px, calc(-50% - 1px)); }
+    to { transform: translate(1.5px, calc(-50% + 1px)); }
+  }
+  .playhead { position: absolute; inset-block: 5px; left: 0; width: 2px; background: var(--text); }
+  .wave-label { display: flex; justify-content: space-between; color: var(--muted); font-size: .75rem; margin-top: 4px; }
+  .rhythm { margin-top: 8px; font-size: .94rem; }
+  .rhythm span { color: var(--muted); font-size: .82rem; white-space: nowrap; }
+  footer { margin-top: 20px; font-size: .86rem; }
+  footer a { color: var(--accent); text-underline-offset: 3px; }
+  @media (max-width: 640px) {
+    main { padding: 32px 16px; }
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    .sample { padding: 16px; }
+    .status { margin-inline-start: 0; flex-basis: 100%; padding-bottom: 4px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pulse.active { animation: none; }
+    .playhead { display: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Apple Watch 触感模拟</h1>
+    <p>试听 Apple 官方成功演示和四种设计节奏。模拟波形的宽度表示时长，高度表示相对强度。</p>
+  </header>
+  <div class="controls" aria-label="播放设置">
+    <label class="volume" for="volume">音量 <input id="volume" type="range" min="0" max="100" value="55"><output id="level" for="volume">55%</output></label>
+    <label id="vibration-option" hidden><input id="vibration" type="checkbox"> 尝试设备震动</label>
+    <button id="stop" type="button" disabled>停止</button>
+    <p id="status" class="status" role="status">选择一种节奏试听</p>
+  </div>
+  <section class="grid" id="samples" aria-label="四种触感"></section>
+  <footer>
+    <p>官方演示需要联网。模拟试听可以离线使用，由浏览器合成声音和动画。设备震动取决于浏览器和硬件，只模拟时序。</p>
+    <p><a href="apple-watch-haptics-catalog.html">浏览原生触感目录与官方演示 →</a></p>
+  </footer>
+</main>
+<script>
+  const samples = [
+    {
+      id: 'success', title: '鼓励', preset: 'WatchKit .success',
+      official: 'https://developer.apple.com/tutorials/videos/com.apple.HIG/haptics-success.mp4',
+      path: 'watchkit/wkhaptictype/success', rhythm: '两下短震，第二下更实',
+      pulses: [{ duration: 120, strength: .42, frequency: 570 }, { gap: 160, duration: 120, strength: .66, frequency: 810 }]
+    },
+    {
+      id: 'cue', title: '提示', preset: 'WatchKit .click',
+      path: 'watchkit/wkhaptictype/click', rhythm: '一下轻点',
+      pulses: [{ duration: 120, strength: .40, frequency: 920 }]
+    },
+    {
+      id: 'reminder', title: '提醒', preset: '系统 Notification',
+      path: 'watchkit/wkhaptictype/notification', rhythm: '先长后短，第二下较轻',
+      pulses: [{ duration: 260, strength: .68, frequency: 490 }, { gap: 220, duration: 120, strength: .38, frequency: 620 }]
+    },
+    {
+      id: 'warning', title: '警告', preset: 'SwiftUI SensoryFeedback.warning',
+      path: 'swiftui/sensoryfeedback/warning', rhythm: '连续三下重震',
+      pulses: [
+        { duration: 150, strength: .93, frequency: 380 },
+        { gap: 100, duration: 150, strength: .93, frequency: 380 },
+        { gap: 100, duration: 150, strength: .93, frequency: 380 }
+      ]
+    }
+  ];
+
+  const scale = 700;
+  const list = document.querySelector('#samples');
+  const volume = document.querySelector('#volume');
+  const level = document.querySelector('#level');
+  const stopButton = document.querySelector('#stop');
+  const status = document.querySelector('#status');
+  const vibration = document.querySelector('#vibration');
+  const supportsVibration = typeof navigator.vibrate === 'function';
+  document.querySelector('#vibration-option').hidden = !supportsVibration;
+
+  let context;
+  let master;
+  let playing;
+
+  for (const sample of samples) {
+    let position = 0;
+    for (const pulse of sample.pulses) {
+      pulse.start = position + (pulse.gap ?? 0);
+      position = pulse.start + pulse.duration;
+    }
+    sample.duration = position;
+    const times = sample.pulses.flatMap(({gap, duration}) => gap ? [gap, duration] : [duration]).join(' / ');
+    const panel = document.createElement('article');
+    panel.className = 'sample';
+    panel.dataset.id = sample.id;
+    panel.innerHTML = `
+      <div class="sample-heading">
+        <div><h2>${sample.title}</h2><a href="https://developer.apple.com/documentation/${sample.path}">${sample.preset}</a></div>
+        <div class="sample-actions">
+          ${sample.official ? '<button class="primary" type="button" aria-pressed="false" aria-controls="success-official">▶ 官方演示</button>' : ''}
+          <button class="simulate" type="button" aria-pressed="false" aria-label="试听${sample.title}">▶ ${sample.official ? '模拟' : '试听'}</button>
+        </div>
+      </div>
+      ${sample.official ? '<video class="official-demo" id="success-official" controls playsinline preload="none" aria-label="Apple 官方成功触感演示" hidden></video>' : ''}
+      <div class="wave" aria-hidden="true">
+        ${sample.pulses.map(pulse => `<span class="pulse" style="--start:${pulse.start / scale * 100}%;--length:${pulse.duration / scale * 100}%;--height:${pulse.strength * 70}%"></span>`).join('')}
+        <span class="playhead" hidden></span>
+      </div>
+      <div class="wave-label" aria-hidden="true"><span>0</span><span>${scale} ms</span></div>
+      <p class="rhythm">${sample.official ? '模拟 · ' : ''}${sample.rhythm} <span>· ${times} ms</span></p>`;
+    sample.panel = panel;
+    sample.button = panel.querySelector('.simulate');
+    sample.officialButton = panel.querySelector('.primary');
+    sample.video = panel.querySelector('video');
+    sample.bars = Array.from(panel.querySelectorAll('.pulse'));
+    sample.playhead = panel.querySelector('.playhead');
+    sample.button.addEventListener('click', () => play(sample));
+    if (sample.video) {
+      sample.officialButton.addEventListener('click', () => {
+        if (playing?.video === sample.video) stop();
+        else playOfficial(sample);
+      });
+      sample.video.addEventListener('ended', () => {
+        if (playing?.video === sample.video) stop('试听完成 · 鼓励（官方）');
+      });
+    }
+    list.append(panel);
+  }
+
+  function updateVolume() {
+    level.value = `${volume.value}%`;
+    const amount = Number(volume.value) / 100;
+    if (playing?.video) playing.video.volume = amount;
+    if (!master) return;
+    const now = context.currentTime;
+    if (amount === 0) {
+      master.gain.cancelScheduledValues(now);
+      master.gain.setValueAtTime(0, now);
+    } else {
+      master.gain.setTargetAtTime(amount, now, .018);
+    }
+  }
+
+  function stop(message = '已停止') {
+    if (!playing) return;
+    const { sample, frame, bus, vibrating, video } = playing;
+    playing = undefined;
+    cancelAnimationFrame(frame);
+    if (bus) {
+      const now = context.currentTime;
+      bus.gain.setTargetAtTime(0, now, .004);
+      setTimeout(() => bus.disconnect(), 30);
+    }
+    if (vibrating) navigator.vibrate(0);
+    if (video) {
+      video.pause();
+      video.hidden = true;
+      if (video.readyState > 0) video.currentTime = 0;
+      sample.officialButton.setAttribute('aria-pressed', 'false');
+      sample.officialButton.textContent = '▶ 官方演示';
+    }
+    sample.panel.classList.remove('playing');
+    sample.button.textContent = sample.official ? '▶ 模拟' : '▶ 试听';
+    sample.button.setAttribute('aria-pressed', 'false');
+    sample.playhead.hidden = true;
+    sample.bars.forEach(bar => bar.classList.remove('active'));
+    stopButton.disabled = true;
+    status.textContent = message;
+  }
+
+  async function playOfficial(sample) {
+    stop();
+    const { video, officialButton } = sample;
+    const run = { sample, video };
+    playing = run;
+    officialButton.setAttribute('aria-pressed', 'true');
+    officialButton.textContent = '停止演示';
+    stopButton.disabled = false;
+    status.textContent = '正在试听 · 鼓励（官方）';
+    video.volume = Number(volume.value) / 100;
+    if (!video.hasAttribute('src') || video.error) video.src = sample.official;
+    video.hidden = false;
+    try {
+      await video.play();
+    } catch {
+      if (playing === run) stop('官方演示载入失败，可点击「模拟」离线试听');
+    }
+  }
+
+  function tone(pulse, startsAt, bus, isWarning) {
+    const begin = startsAt + pulse.start / 1000;
+    const duration = pulse.duration / 1000;
+    const end = begin + duration;
+    const envelope = context.createGain();
+    envelope.gain.setValueAtTime(0, begin);
+    envelope.gain.linearRampToValueAtTime(.31 * pulse.strength, begin + .009);
+    envelope.gain.exponentialRampToValueAtTime(.10 * pulse.strength, begin + duration * .6);
+    envelope.gain.exponentialRampToValueAtTime(.0001, end);
+    envelope.connect(bus);
+    for (const [multiple, amount] of [[1, 1], [2.01, isWarning ? .27 : .12], [.5, isWarning ? .25 : .10]]) {
+      const oscillator = context.createOscillator();
+      const partial = context.createGain();
+      partial.gain.value = amount;
+      oscillator.frequency.value = pulse.frequency * multiple;
+      oscillator.connect(partial).connect(envelope);
+      oscillator.start(begin);
+      oscillator.stop(end);
+    }
+  }
+
+  async function play(sample) {
+    stop();
+    const run = { sample };
+    playing = run;
+    sample.panel.classList.add('playing');
+    sample.button.textContent = '↻ 重播';
+    sample.button.setAttribute('aria-pressed', 'true');
+    stopButton.disabled = false;
+    status.textContent = `正在试听 · ${sample.title}`;
+
+    if (supportsVibration && vibration.checked) {
+      run.vibrating = navigator.vibrate(sample.pulses.flatMap(({gap, duration}) => gap ? [gap, duration] : [duration]));
+    }
+
+    let audioAvailable = false;
+    try {
+      const Audio = window.AudioContext ?? window.webkitAudioContext;
+      if (Audio) {
+        if (!context) {
+          context = new Audio();
+          master = context.createGain();
+          master.gain.value = Number(volume.value) / 100;
+          master.connect(context.destination);
+        }
+        if (context.state !== 'running') await context.resume();
+        if (playing !== run) return;
+        audioAvailable = context.state === 'running';
+      }
+    } catch {
+      if (playing !== run) return;
+    }
+
+    const delay = audioAvailable ? .02 : 0;
+    const audioStart = audioAvailable ? context.currentTime + delay : null;
+    const visualStart = performance.now() + delay * 1000;
+    if (audioAvailable) {
+      run.bus = context.createGain();
+      run.bus.connect(master);
+      sample.pulses.forEach(pulse => tone(pulse, audioStart, run.bus, sample.id === 'warning'));
+    }
+    const statusSuffix = audioAvailable ? '' : ' · 音频不可用';
+    if (statusSuffix) status.textContent += statusSuffix;
+    sample.playhead.hidden = false;
+
+    function animate(now) {
+      const elapsed = audioAvailable ? (context.currentTime - audioStart) * 1000 : now - visualStart;
+      if (elapsed >= sample.duration) {
+        stop(`试听完成 · ${sample.title}${statusSuffix}`);
+        return;
+      }
+      sample.playhead.style.left = `${Math.max(0, elapsed) / scale * 100}%`;
+      sample.pulses.forEach((pulse, index) => {
+        sample.bars[index].classList.toggle('active', elapsed >= pulse.start && elapsed < pulse.start + pulse.duration);
+      });
+      run.frame = requestAnimationFrame(animate);
+    }
+    run.frame = requestAnimationFrame(animate);
+  }
+
+  volume.addEventListener('input', updateVolume);
+  stopButton.addEventListener('click', () => stop());
+  vibration.addEventListener('change', () => {
+    if (!vibration.checked && playing?.vibrating) {
+      navigator.vibrate(0);
+      playing.vibrating = false;
+    }
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stop();
+  });
+</script>
+</body>
+</html>

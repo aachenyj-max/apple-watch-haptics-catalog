@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apple Watch 原生触感目录</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #151716;
+    --surface: #1d201e;
+    --text: #f3f5ef;
+    --muted: #b1b9b2;
+    --border: #424b44;
+    --accent: #d3f992;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; color: var(--text); background: var(--bg); line-height: 1.55; }
+  main { max-width: 1040px; margin: auto; padding: 48px 28px; }
+  a { color: var(--accent); text-underline-offset: 4px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  nav { display: flex; flex-wrap: wrap; gap: 4px 22px; margin: -10px 0 14px; }
+  nav a { display: inline-flex; align-items: center; min-height: 44px; }
+  h1 { margin: 0 0 12px; font-size: clamp(1.9rem, 5vw, 3.15rem); line-height: 1.15; letter-spacing: -.04em; }
+  h2 { margin: 0 0 4px; font-size: 1.42rem; }
+  h3 { margin: 0; font-size: 1.08rem; }
+  p { margin: 0; }
+  header p, .section-intro, .description, footer { color: var(--muted); }
+  section { margin-top: 32px; }
+  .section-intro { margin-bottom: 12px; font-size: .92rem; }
+  .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  article { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; min-width: 0; }
+  article:has(video:not([hidden])) { border-color: var(--accent); }
+  code { font-family: ui-monospace, "SF Mono", monospace; overflow-wrap: anywhere; }
+  article a { font-size: .82rem; }
+  article p { margin-top: 5px; font-size: .88rem; }
+  .description { min-height: 2.75em; }
+  .card-actions { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  button {
+    min-height: 44px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
+    color: var(--text); background: var(--surface); font: inherit; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button[aria-expanded=true] { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+  video { display: block; width: 100%; margin-top: 12px; border-radius: 8px; background: #0e100f; }
+  video[hidden], .media-error[hidden] { display: none; }
+  .media-error { font-size: .85rem; }
+  .api-list { margin: 0; }
+  .api-row {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    gap: 4px 16px; align-items: baseline; padding: 10px 2px; border-top: 1px solid var(--border);
+  }
+  .api-row dd { margin: 0; }
+  .api-row dt span { display: block; color: var(--muted); font-size: .8rem; }
+  .api-row dt a { display: inline-flex; align-items: center; min-height: 44px; }
+  footer { border-top: 1px solid var(--border); margin-top: 28px; padding-top: 14px; font-size: .86rem; }
+  @media (max-width: 780px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 540px) {
+    main { padding: 28px 16px; }
+    .grid, .api-row { grid-template-columns: minmax(0, 1fr); }
+    .description { min-height: 0; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <nav aria-label="页面导航">
+    <a href="apple-watch-haptics-preview.html">← 四类方案模拟</a>
+    <a href="#watchkit-extra">导航与水下</a>
+    <a href="#swiftui">SwiftUI 预设</a>
+  </nav>
+  <header>
+    <h1>Apple Watch 原生触感目录</h1>
+    <p>收录 Apple 公开的 WatchKit 与 SwiftUI 预设。官方演示可以在电脑上播放，腕上触感请用 Apple Watch 验证。</p>
+  </header>
+
+  <section aria-labelledby="demos-title">
+    <h2 id="demos-title">WatchKit 官方演示</h2>
+    <p class="section-intro">9 段 Apple 官方视频，包含声音与波形示意。播放需要联网。</p>
+    <div class="grid" id="demos"></div>
+    <noscript><p>请启用 JavaScript，或打开 <a href="https://developer.apple.com/design/human-interface-guidelines/playing-haptics#watchOS">Apple 官方演示</a>。</p></noscript>
+  </section>
+
+  <section id="watchkit-extra" aria-labelledby="extra-title">
+    <h2 id="extra-title">WatchKit 导航与水下触感</h2>
+    <p class="section-intro">这 5 项在 WatchKit 枚举中公开。Apple 的触感设计指南未提供对应试听。</p>
+    <dl class="api-list" id="extra"></dl>
+  </section>
+
+  <section id="swiftui" aria-labelledby="swiftui-title">
+    <h2 id="swiftui-title">SwiftUI 原生反馈</h2>
+    <p class="section-intro">以下预设的 Apple API 文档明确说明可在 watchOS 播放。与 WatchKit 语义相近的条目也保留了各自的接口。</p>
+    <dl class="api-list" id="swiftui-list"></dl>
+  </section>
+
+  <footer>
+    <p>目录范围为应用可调用的公开预设。系统界面触感，例如数码表冠的刻度反馈，由 watchOS 按交互提供。</p>
+    <p><a href="https://developer.apple.com/design/human-interface-guidelines/playing-haptics#watchOS">Apple 触感设计指南</a> · <a href="https://developer.apple.com/documentation/watchkit/wkhaptictype">WatchKit 枚举</a> · <a href="https://developer.apple.com/documentation/swiftui/sensoryfeedback">SwiftUI 反馈接口</a></p>
+  </footer>
+</main>
+<script>
+  const docs = 'https://developer.apple.com/documentation/';
+  const media = 'https://developer.apple.com/tutorials/videos/com.apple.HIG/haptics-';
+  const watchKit = 'watchkit/wkhaptictype/';
+  const swiftUI = 'swiftui/sensoryfeedback/';
+
+  const demos = [
+    ['通知', 'notification', 'notification', '通知送达，值得用户查看。'],
+    ['数值上升', 'directionUp', 'levelup', '数值增加或越过上阈值。'],
+    ['数值下降', 'directionDown', 'leveldown', '数值减少或跌破下阈值。'],
+    ['成功', 'success', 'success', '任务或操作成功完成。'],
+    ['失败', 'failure', 'failure', '任务或操作失败。'],
+    ['重试', 'retry', 'retry', '任务暂时失败，可以再试一次。'],
+    ['开始', 'start', 'start', '开始一项可由用户启停的活动。'],
+    ['停止', 'stop', 'stop', '结束先前启动的活动。'],
+    ['轻点', 'click', 'click', '标记固定的进度点或刻度。']
+  ];
+  const specialized = [
+    ['新导航步骤', 'navigationGenericManeuver', 'watchOS 7+', '提示下一步导航。应用需持续进行后台定位。'],
+    ['导航左转', 'navigationLeftTurn', 'watchOS 7+', '提示左转。应用需持续进行后台定位。'],
+    ['导航右转', 'navigationRightTurn', 'watchOS 7+', '提示右转。应用需持续进行后台定位。'],
+    ['水下深度提示', 'underwaterDepthPrompt', 'watchOS 9+', '用于水下深度提示。'],
+    ['水下深度紧急提示', 'underwaterDepthCriticalPrompt', 'watchOS 9+', '用于水下深度相关的紧急提示。']
+  ];
+  const feedback = [
+    ['开始', 'start', 'watchOS 10+', '活动开始。'],
+    ['停止', 'stop', 'watchOS 10+', '活动结束。'],
+    ['重要数值上升', 'increase', 'watchOS 10+', '数值上升并超过重要阈值。'],
+    ['重要数值下降', 'decrease', 'watchOS 10+', '数值下降并跌破重要阈值。'],
+    ['选择变化', 'selection', 'watchOS 10+', '界面控件的选中值发生变化。'],
+    ['成功', 'success', 'watchOS 10+', '任务或操作完成。'],
+    ['警告', 'warning', 'watchOS 10+', '任务或操作产生警告。'],
+    ['错误', 'error', 'watchOS 10+', '出现错误。'],
+    ['碰撞反馈', 'impact', 'watchOS 10+', '配合界面元素碰撞。API 还提供重量、柔韧性及强度参数，各档位的腕上差异以真机为准。']
+  ];
+
+  const demoList = document.querySelector('#demos');
+  let active;
+  let request = 0;
+
+  function closeActive() {
+    if (!active) return;
+    active.video.pause();
+    active.video.hidden = true;
+    if (active.video.readyState > 0) active.video.currentTime = 0;
+    active.error.hidden = true;
+    active.button.setAttribute('aria-expanded', 'false');
+    active.button.textContent = '▶ 官方演示';
+    active = undefined;
+  }
+
+  async function toggleDemo(demo) {
+    const currentRequest = ++request;
+    if (active === demo) {
+      closeActive();
+      return;
+    }
+    closeActive();
+    active = demo;
+    demo.video.hidden = false;
+    demo.button.textContent = '收起演示';
+    demo.button.setAttribute('aria-expanded', 'true');
+    if (!demo.video.hasAttribute('src') || demo.video.error) demo.video.src = demo.url;
+    try {
+      await demo.video.play();
+    } catch {
+      if (currentRequest !== request) return;
+      demo.video.hidden = true;
+      demo.error.hidden = false;
+    }
+  }
+
+  for (const [title, symbol, clip, description] of demos) {
+    const card = document.createElement('article');
+    const url = media + clip + '.mp4';
+    card.innerHTML = `
+      <h3>${title}</h3>
+      <a href="${docs + watchKit + symbol.toLowerCase()}"><code>.${symbol}</code></a>
+      <p class="description">${description}</p>
+      <div class="card-actions">
+        <button type="button" aria-expanded="false" aria-controls="clip-${clip}" aria-label="${title}官方演示">▶ 官方演示</button>
+      </div>
+      <video id="clip-${clip}" aria-label="${title}的 Apple 官方演示" controls playsinline preload="none" hidden></video>
+      <p class="media-error" role="status" hidden>演示载入失败。<a href="${url}">在浏览器中打开视频</a></p>`;
+    const demo = { url, button: card.querySelector('button'), video: card.querySelector('video'), error: card.querySelector('.media-error') };
+    demo.button.addEventListener('click', () => toggleDemo(demo));
+    demoList.append(card);
+  }
+
+  function renderAPI(target, entries, prefix) {
+    for (const [title, symbol, version, description] of entries) {
+      const row = document.createElement('div');
+      row.className = 'api-row';
+      row.innerHTML = `
+        <dt><b>${title}</b> <span>${version} · <a href="${docs + prefix + symbol.toLowerCase()}"><code>.${symbol}</code></a></span></dt>
+        <dd>${description}</dd>`;
+      target.append(row);
+    }
+  }
+
+  renderAPI(document.querySelector('#extra'), specialized, watchKit);
+  renderAPI(document.querySelector('#swiftui-list'), feedback, swiftUI);
+</script>
+</body>
+</html>
