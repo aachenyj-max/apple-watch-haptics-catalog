@@ -48,15 +48,12 @@
   h2 { margin: 0; font-size: 1.3rem; }
   .sample a { color: var(--muted); font-size: .8rem; overflow-wrap: anywhere; text-underline-offset: 3px; }
   .sample button { flex: none; }
-  .sample.playing button { color: var(--bg); background: var(--tone); border-color: var(--tone); }
   .sample .sample-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
   .sample .sample-actions button { background: var(--surface); color: var(--text); border-color: var(--border); }
   .sample-actions button:hover { border-color: var(--tone); }
-  .sample .sample-actions button.primary, .sample .sample-actions button[aria-pressed=true] {
+  .sample .sample-actions button[aria-pressed=true] {
     background: var(--tone); color: var(--bg); border-color: var(--tone);
   }
-  .official-demo { display: block; width: 100%; margin-top: 16px; border-radius: 9px; background: #0e100f; }
-  .official-demo[hidden] { display: none; }
   .wave {
     position: relative; min-height: 66px; margin-top: 16px; border-radius: 9px;
     background: repeating-linear-gradient(90deg, #303732 0 1px, transparent 1px calc(100% / 7)), #171a18;
@@ -94,7 +91,7 @@
 <main>
   <header>
     <h1>Apple Watch 触感模拟</h1>
-    <p>试听 Apple 官方成功演示和四种设计节奏。模拟波形的宽度表示时长，高度表示相对强度。</p>
+    <p>试听四种设计节奏。模拟波形的宽度表示时长，高度表示相对强度。</p>
   </header>
   <div class="controls" aria-label="播放设置">
     <label class="volume" for="volume">音量 <input id="volume" type="range" min="0" max="100" value="55"><output id="level" for="volume">55%</output></label>
@@ -104,7 +101,7 @@
   </div>
   <section class="grid" id="samples" aria-label="四种触感"></section>
   <footer>
-    <p>官方演示需要联网。模拟试听可以离线使用，由浏览器合成声音和动画。设备震动取决于浏览器和硬件，只模拟时序。</p>
+    <p>模拟试听可以离线使用，由浏览器合成声音和动画。设备震动取决于浏览器和硬件，只模拟时序。</p>
     <p><a href="apple-watch-haptics-catalog.html">浏览原生触感目录与官方演示 →</a></p>
   </footer>
 </main>
@@ -112,7 +109,6 @@
   const samples = [
     {
       id: 'success', title: '鼓励', preset: 'WatchKit .success',
-      official: 'https://developer.apple.com/tutorials/videos/com.apple.HIG/haptics-success.mp4',
       path: 'watchkit/wkhaptictype/success', rhythm: '两下短震，第二下更实',
       pulses: [{ duration: 120, strength: .42, frequency: 570 }, { gap: 160, duration: 120, strength: .66, frequency: 810 }]
     },
@@ -166,40 +162,25 @@
       <div class="sample-heading">
         <div><h2>${sample.title}</h2><a href="https://developer.apple.com/documentation/${sample.path}">${sample.preset}</a></div>
         <div class="sample-actions">
-          ${sample.official ? '<button class="primary" type="button" aria-pressed="false" aria-controls="success-official">▶ 官方演示</button>' : ''}
-          <button class="simulate" type="button" aria-pressed="false" aria-label="试听${sample.title}">▶ ${sample.official ? '模拟' : '试听'}</button>
+          <button class="simulate" type="button" aria-pressed="false" aria-label="试听${sample.title}">▶ 试听</button>
         </div>
       </div>
-      ${sample.official ? '<video class="official-demo" id="success-official" controls playsinline preload="none" aria-label="Apple 官方成功触感演示" hidden></video>' : ''}
       <div class="wave" aria-hidden="true">
         ${sample.pulses.map(pulse => `<span class="pulse" style="--start:${pulse.start / scale * 100}%;--length:${pulse.duration / scale * 100}%;--height:${pulse.strength * 70}%"></span>`).join('')}
         <span class="playhead" hidden></span>
       </div>
       <div class="wave-label" aria-hidden="true"><span>0</span><span>${scale} ms</span></div>
-      <p class="rhythm">${sample.official ? '模拟 · ' : ''}${sample.rhythm} <span>· ${times} ms</span></p>`;
-    sample.panel = panel;
+      <p class="rhythm">${sample.rhythm} <span>· ${times} ms</span></p>`;
     sample.button = panel.querySelector('.simulate');
-    sample.officialButton = panel.querySelector('.primary');
-    sample.video = panel.querySelector('video');
     sample.bars = Array.from(panel.querySelectorAll('.pulse'));
     sample.playhead = panel.querySelector('.playhead');
     sample.button.addEventListener('click', () => play(sample));
-    if (sample.video) {
-      sample.officialButton.addEventListener('click', () => {
-        if (playing?.video === sample.video) stop();
-        else playOfficial(sample);
-      });
-      sample.video.addEventListener('ended', () => {
-        if (playing?.video === sample.video) stop('试听完成 · 鼓励（官方）');
-      });
-    }
     list.append(panel);
   }
 
   function updateVolume() {
     level.value = `${volume.value}%`;
     const amount = Number(volume.value) / 100;
-    if (playing?.video) playing.video.volume = amount;
     if (!master) return;
     const now = context.currentTime;
     if (amount === 0) {
@@ -212,7 +193,7 @@
 
   function stop(message = '已停止') {
     if (!playing) return;
-    const { sample, frame, bus, vibrating, video } = playing;
+    const { sample, frame, bus, vibrating } = playing;
     playing = undefined;
     cancelAnimationFrame(frame);
     if (bus) {
@@ -221,39 +202,12 @@
       setTimeout(() => bus.disconnect(), 30);
     }
     if (vibrating) navigator.vibrate(0);
-    if (video) {
-      video.pause();
-      video.hidden = true;
-      if (video.readyState > 0) video.currentTime = 0;
-      sample.officialButton.setAttribute('aria-pressed', 'false');
-      sample.officialButton.textContent = '▶ 官方演示';
-    }
-    sample.panel.classList.remove('playing');
-    sample.button.textContent = sample.official ? '▶ 模拟' : '▶ 试听';
-    sample.button.setAttribute('aria-pressed', 'false');
+    sample.button.textContent = '▶ 试听';
     sample.playhead.hidden = true;
     sample.bars.forEach(bar => bar.classList.remove('active'));
+    sample.button.setAttribute('aria-pressed', 'false');
     stopButton.disabled = true;
     status.textContent = message;
-  }
-
-  async function playOfficial(sample) {
-    stop();
-    const { video, officialButton } = sample;
-    const run = { sample, video };
-    playing = run;
-    officialButton.setAttribute('aria-pressed', 'true');
-    officialButton.textContent = '停止演示';
-    stopButton.disabled = false;
-    status.textContent = '正在试听 · 鼓励（官方）';
-    video.volume = Number(volume.value) / 100;
-    if (!video.hasAttribute('src') || video.error) video.src = sample.official;
-    video.hidden = false;
-    try {
-      await video.play();
-    } catch {
-      if (playing === run) stop('官方演示载入失败，可点击「模拟」离线试听');
-    }
   }
 
   function tone(pulse, startsAt, bus, isWarning) {
@@ -281,7 +235,6 @@
     stop();
     const run = { sample };
     playing = run;
-    sample.panel.classList.add('playing');
     sample.button.textContent = '↻ 重播';
     sample.button.setAttribute('aria-pressed', 'true');
     stopButton.disabled = false;
